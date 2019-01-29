@@ -1,5 +1,6 @@
 package com.lzp.luckymoney;
 
+import android.app.Activity;
 import android.content.ContentValues;
 
 import com.lzp.luckymoney.util.Log;
@@ -11,15 +12,121 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
+import static com.lzp.luckymoney.util.Constants.TAG;
+import static com.lzp.luckymoney.util.Constants.TAG_WX_LOG;
+
 public final class LuckyMoneyHelper {
+    /**
+     * decode xml to json
+     *
+     * @param contentValues
+     * @return
+     */
     public static LuckyMoneyMsg decodeLuckyMoneyMsg(ContentValues contentValues) {
-        String xml = (String) contentValues.get("xml");
+        String talker = contentValues.getAsString("talker");
+        String xml = (String) contentValues.get("content");
         if (xml == null || xml.isEmpty()) return null;
 
         JSONObject jsonObject = new XmlToJson.Builder(xml).build();
-        return null;
+        return LuckyMoneyMsg.createLuckyMoneyMsg(jsonObject, talker);
     }
 
+
+    /**
+     * create a client to send network request
+     *
+     * @param topActivity
+     * @param lpparam
+     * @return
+     */
+    public static Object createNetReqClient(Activity topActivity, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Class clzJ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader);
+        Object objJ = XposedHelpers.newInstance(clzJ, topActivity, null);
+        Log.e(TAG, "createNetReqClient=" + objJ);
+        return objJ;
+    }
+
+    /**
+     * 1. Hook com.tencent.mm.plugin.luckymoney.b.j.a(int,int,string,l) method, to get response after send timestamp request.
+     * 2. After get the server response,then get timestamp from the response data. Then send a request to get luckymoney.
+     */
+    public static void registeTimestampCallback(final XC_LoadPackage.LoadPackageParam lpparam, final String talker, final Object client) {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader, "a",
+                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.ab.l", lpparam.classLoader),
+                new XC_MethodHook() {
+                    @Override
+                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                        Object wxtimestamp = param.args[3];
+                        Log.e(TAG, "receive timestamp=" + wxtimestamp.toString());
+                        creatLuckyMoneyReq(client, wxtimestamp, talker, lpparam);
+                    }
+                });
+    }
+
+    /**
+     * Create com.tencent.mm.plugin.luckymoney.b.ag object and will be used while send timestamp request
+     *
+     * @param lpparam
+     * @param luckyMoneyMsg
+     * @return com.tencent.mm.plugin.luckymoney.b.ag
+     */
+    public static Object createTimestampReqParam1(final XC_LoadPackage.LoadPackageParam lpparam, LuckyMoneyMsg luckyMoneyMsg) {
+        Class clzAG = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ag", lpparam.classLoader);
+        Object objAG = XposedHelpers.newInstance(clzAG, luckyMoneyMsg.channelid, luckyMoneyMsg.sendid, luckyMoneyMsg.nativeurl, luckyMoneyMsg.way, luckyMoneyMsg.version);
+        Log.e(TAG, "createTimestampReqParam1=" + objAG.toString());
+        return objAG;
+    }
+
+    /**
+     * Send net request via client.Client object is created by the method of createNetReqClient
+     *
+     * @param client
+     * @param param1
+     * @param lpparam
+     */
+    public static void sendNetReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Log.e(TAG, "sendNetReq client=" + client.toString() + ",param1=" + param1.toString());
+        XposedHelpers.callMethod(client, "b", param1, false);
+    }
+
+    /**
+     * The real request to get luckymony.
+     *
+     * @param client
+     * @param wxTimestamp
+     * @param talker
+     * @param lpparam
+     */
+    private static void creatLuckyMoneyReq(final Object client, final Object wxTimestamp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Class clzBO = XposedHelpers.findClass(" com.tencent.mm.plugin.luckymoney.b.o", lpparam.classLoader);
+        String baX = (String) XposedHelpers.callStaticMethod(clzBO, "baX");
+
+        Class clzQ = XposedHelpers.findClass("com.tencent.mm.model.q", lpparam.classLoader);
+        String GH = (String) XposedHelpers.callStaticMethod(clzQ, "GH");
+
+        LuckyMoneyReq req = new LuckyMoneyReq.Builder()
+                .bxk(XposedHelpers.getIntField(wxTimestamp, "bxk"))
+                .kLZ((String) XposedHelpers.getObjectField(wxTimestamp, "kLZ"))
+                .ceR((String) XposedHelpers.getObjectField(wxTimestamp, "ceR"))
+                .kRC((String) XposedHelpers.getObjectField(wxTimestamp, "kRC"))
+                .baX(baX)
+                .GH(GH)
+                .username(talker)
+                .build();
+
+        Log.e(TAG, "LuckyMoneyReq=" + req.toString());
+
+        Class clzAD = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader);
+        Object ad = XposedHelpers.newInstance(clzAD, req.msgType, req.bxk, req.kLZ, req.ceR, req.baX, req.GH, req.username, req.version, req.kRC);
+
+        LuckyMoneyHelper.sendNetReq(client, ad, lpparam);
+    }
+
+    /**
+     * hook weichat log method
+     *
+     * @param lpparam
+     */
     public static void hookLogMethod(XC_LoadPackage.LoadPackageParam lpparam) {
         XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "i", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
@@ -30,10 +137,10 @@ public final class LuckyMoneyHelper {
                 StringBuilder stringBuilder = new StringBuilder();
                 if (objArr != null) {
                     for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
+                        stringBuilder.append(obj == null ? "" : obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -49,7 +156,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -65,7 +172,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -81,7 +188,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -97,7 +204,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -113,7 +220,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -129,7 +236,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
 
@@ -145,7 +252,7 @@ public final class LuckyMoneyHelper {
                         stringBuilder.append(obj.toString() + ",");
                     }
                 }
-                Log.e(LuckyMoney.TAG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
+                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
             }
         });
     }
