@@ -28,6 +28,8 @@ public final class LuckyMoneyHelper {
         String talker = contentValues.getAsString("talker");
         String xml = (String) contentValues.get("content");
         if (xml == null || xml.isEmpty()) return null;
+        int start = xml.indexOf("<msg>");
+        xml = xml.substring(start, xml.length());
 
         JSONObject jsonObject = new XmlToJson.Builder(xml).build();
         return LuckyMoneyMsg.createLuckyMoneyMsg(jsonObject, talker);

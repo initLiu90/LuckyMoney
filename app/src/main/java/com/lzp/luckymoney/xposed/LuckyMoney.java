@@ -20,19 +20,21 @@ import io.reactivex.schedulers.Schedulers;
 
 import static com.lzp.luckymoney.xposed.util.Constants.TAG;
 
-public class LuckyMoney implements IXposedHookLoadPackage {
+public class LuckyMoney implements IXposedHookLoadPackage, LuckyMoneyConfig.ConfigChangeListener {
     private static final int LUCKY_MONEY_C2C_MSG_TYPE = 436207665;
     private static final int LUCKY_MONEY_GROUP_MSG_TYPE = 436207665;
     private Activity mTopActivity;
     private Object mClient;
-    private boolean mEnabled = false;
-    private boolean isConfiged = false;
+    private boolean mEnabled = true;
+    private LuckyMoneyConfig mConfig;
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
         if (lpparam == null) return;
         if (lpparam.packageName.equals("com.tencent.mm")) {
             Log.e(TAG, "hook weichat");
+
+//            mConfig = new LuckyMoneyConfig(this);
 
 //            LuckyMoneyHelper.hookLogMethod(lpparam);
             XposedHelpers.findAndHookMethod("android.app.Instrumentation", lpparam.classLoader, "newActivity", ClassLoader.class, String.class, Intent.class, new XC_MethodHook() {
@@ -45,17 +47,18 @@ public class LuckyMoney implements IXposedHookLoadPackage {
             XposedHelpers.findAndHookMethod("com.tencent.wcdb.database.SQLiteDatabase", lpparam.classLoader, "insert", String.class, String.class, ContentValues.class, new XC_MethodHook() {
                 @Override
                 public void beforeHookedMethod(MethodHookParam param) {
-                    config();
-
+//                    mConfig.config(mTopActivity);
+                    Log.e(TAG, "SQLiteDatabase insert");
                     String arg1 = (String) param.args[0];
                     String arg2 = (String) param.args[1];
                     ContentValues arg3 = (ContentValues) param.args[2];
                     if (arg3 == null) return;
-//                    Log.e(TAG, "arg1=" + arg1 + " ,arg2=" + arg2);
-//                    for (String key : arg3.keySet()) {
-//                        Log.e(TAG, "key=" + key + ",value=" + arg3.get(key));
-//                    }
+                    Log.e(TAG, "arg1=" + arg1 + " ,arg2=" + arg2);
+                    for (String key : arg3.keySet()) {
+                        Log.e(TAG, "key=" + key + ",value=" + arg3.get(key));
+                    }
                     int type = arg3.getAsInteger("type");
+                    Log.e(TAG, "last  :arg1=" + arg1 + ",arg2=" + arg2 + ",type=" + type);
                     if (arg1.equals("message") && arg2.equals("msgId") && (type == LUCKY_MONEY_C2C_MSG_TYPE || type == LUCKY_MONEY_GROUP_MSG_TYPE)) {
                         final LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg(arg3);
                         Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
@@ -63,6 +66,31 @@ public class LuckyMoney implements IXposedHookLoadPackage {
                     }
                 }
             });
+
+//            XposedHelpers.findAndHookConstructor("com.tencent.mm.plugin.luckymoney.b.ag", lpparam.classLoader,
+//                    int.class, String.class, String.class, int.class, String.class,
+//                    new XC_MethodHook() {
+//                        @Override
+//                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                            Log.e(TAG, "ag.arg0=" + param.args[0] + ",ag.arg1=" + param.args[1] + ",ag.arg2=" + param.args[2] + ",ag.arg3=" + param.args[3] + ",ag.arg4=" + param.args[4]);
+//                        }
+//                    });
+//            XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyReceiveUI", lpparam.classLoader, "d",
+//                    int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.ab.l", lpparam.classLoader),
+//                    new XC_MethodHook() {
+//                        @Override
+//                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                            Log.e(TAG, "ReceiveUI.d.arg0=" + param.args[0] + ",ReceiveUI.d.arg1=" + param.args[1] + ",ReceiveUI.d.arg2=" + param.args[2] + ",ReceiveUI.d.arg3=" + param.args[3].getClass().getName());
+//                        }
+//                    });
+//            XposedHelpers.findAndHookConstructor("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader,
+//                    int.class, int.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class,
+//                    new XC_MethodHook() {
+//                        @Override
+//                        protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+//                            Log.e(TAG, "ad.arg0=" + param.args[0] + ",ad.arg1=" + param.args[1] + ",ad.arg2=" + param.args[2] + ",ad.arg3=" + param.args[3] + ",ad.arg4=" + param.args[4] + ",ad.arg5=" + param.args[5] + ",ad.arg6=" + param.args[6] + ",ad.arg7=" + param.args[7]);
+//                        }
+//                    });
         }
     }
 
@@ -97,37 +125,9 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         LuckyMoneyHelper.sendTimestampReq(mClient, param1, lpparam);
     }
 
-    private void config() {
-        Context context = mTopActivity != null ? mTopActivity.getApplicationContext() : null;
-        if (!isConfiged && context != null) {
-            Log.e(TAG, "config");
-            context.getContentResolver().registerContentObserver(Uri.parse("content://com.lzp.luckymoney.provider/grab"), true, new ContentObserver(null) {
-                @Override
-                public void onChange(boolean selfChange) {
-                    getConfig(context);
-                }
-            });
-            getConfig(context);
-            isConfiged = true;
-        }
-    }
-
-    private void getConfig(Context context) {
-        Observable.just(0)
-                .map(v -> {
-                    int result = 0;
-                    Cursor cursor = context.getContentResolver().query(Uri.parse("content://com.lzp.luckymoney.provider/grab"), null, null, null, null);
-                    if (cursor != null && cursor.getCount() > 0) {
-                        cursor.moveToFirst();
-                        result = cursor.getInt(0);
-                    }
-                    return result == 1 ? true : false;
-                })
-                .subscribeOn(Schedulers.io())
-                .observeOn(AndroidSchedulers.mainThread())
-                .subscribe(enabled -> {
-                    mEnabled = enabled;
-                    Log.e(TAG, "enable=" + mEnabled);
-                });
+    @Override
+    public void onConfigChange(boolean enable) {
+        mEnabled = enable;
+        Log.e(TAG, "enable=" + mEnabled);
     }
 }
