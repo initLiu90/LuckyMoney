@@ -17,6 +17,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
     private static final int LUCKY_MONEY_C2C_MSG_TYPE = 436207665;
     private static final int LUCKY_MONEY_GROUP_MSG_TYPE = 436207665;
     private Activity mTopActivity;
+    private Object mClient;
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -44,13 +45,27 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 //                    }
                     int type = arg3.getAsInteger("type");
                     if (arg1.equals("message") && arg2.equals("msgId") && (type == LUCKY_MONEY_C2C_MSG_TYPE || type == LUCKY_MONEY_GROUP_MSG_TYPE)) {
-                        LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg(arg3);
+                        final LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg(arg3);
                         Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
 
-                        Object client = LuckyMoneyHelper.createNetReqClient(mTopActivity, lpparam);
-                        LuckyMoneyHelper.registeTimestampCallback(lpparam, luckyMoneyMsg.talker, client);
+                        if (mClient == null) {
+                            //step1: create net request client
+                            mClient = LuckyMoneyHelper.createNetReqClient(mTopActivity, lpparam);
+                            //step2: add a listener on timestamp request
+                            LuckyMoneyHelper.registeTimestampCallback(lpparam, new TimestampCallback() {
+                                @Override
+                                public void onReceive(Object wxTimestamp) {
+                                    Log.e(TAG, "receive timestamp=" + wxTimestamp.toString());
+                                    //step3: send luckmoney request
+                                    Object param1 = LuckyMoneyHelper.creatLuckyMoneyReqParam1(wxTimestamp, luckyMoneyMsg.talker, lpparam);
+                                    LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param1, lpparam);
+                                }
+                            });
+                        }
+
+                        //step4: send timestamp request
                         Object param1 = LuckyMoneyHelper.createTimestampReqParam1(lpparam, luckyMoneyMsg);
-                        LuckyMoneyHelper.sendNetReq(client, param1, lpparam);
+                        LuckyMoneyHelper.sendTimestampReq(mClient, param1, lpparam);
                     }
                 }
             });

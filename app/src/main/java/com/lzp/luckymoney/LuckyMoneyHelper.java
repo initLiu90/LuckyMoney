@@ -50,15 +50,17 @@ public final class LuckyMoneyHelper {
      * 1. Hook com.tencent.mm.plugin.luckymoney.b.j.a(int,int,string,l) method, to get response after send timestamp request.
      * 2. After get the server response,then get timestamp from the response data. Then send a request to get luckymoney.
      */
-    public static void registeTimestampCallback(final XC_LoadPackage.LoadPackageParam lpparam, final String talker, final Object client) {
+    public static void registeTimestampCallback(final XC_LoadPackage.LoadPackageParam lpparam, final TimestampCallback callback) {
+        Log.e(TAG, "registeTimestampCallback");
         XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader, "a",
                 int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.ab.l", lpparam.classLoader),
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                         Object wxtimestamp = param.args[3];
-                        Log.e(TAG, "receive timestamp=" + wxtimestamp.toString());
-                        creatLuckyMoneyReq(client, wxtimestamp, talker, lpparam);
+                        if (wxtimestamp.getClass().getName().equals("com.tencent.mm.plugin.luckymoney.b.ag")) {
+                            callback.onReceive(wxtimestamp);
+                        }
                     }
                 });
     }
@@ -84,20 +86,29 @@ public final class LuckyMoneyHelper {
      * @param param1
      * @param lpparam
      */
-    public static void sendNetReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
-        Log.e(TAG, "sendNetReq client=" + client.toString() + ",param1=" + param1.toString());
+    private static void sendNetReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Log.e(TAG, "sendNetReq");
         XposedHelpers.callMethod(client, "b", param1, false);
+    }
+
+    public static void sendTimestampReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Log.e(TAG, "sendTimestampReq client=" + client.toString() + ",param1=" + param1.toString());
+        sendNetReq(client, param1, lpparam);
+    }
+
+    public static void sendLuckyMoneyReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Log.e(TAG, "sendLuckyMoneyReq client=" + client.toString() + ",param1=" + param1.toString());
+        sendNetReq(client, param1, lpparam);
     }
 
     /**
      * The real request to get luckymony.
      *
-     * @param client
      * @param wxTimestamp
      * @param talker
      * @param lpparam
      */
-    private static void creatLuckyMoneyReq(final Object client, final Object wxTimestamp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
+    public static Object creatLuckyMoneyReqParam1(final Object wxTimestamp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
         Class clzBO = XposedHelpers.findClass(" com.tencent.mm.plugin.luckymoney.b.o", lpparam.classLoader);
         String baX = (String) XposedHelpers.callStaticMethod(clzBO, "baX");
 
@@ -118,8 +129,7 @@ public final class LuckyMoneyHelper {
 
         Class clzAD = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader);
         Object ad = XposedHelpers.newInstance(clzAD, req.msgType, req.bxk, req.kLZ, req.ceR, req.baX, req.GH, req.username, req.version, req.kRC);
-
-        LuckyMoneyHelper.sendNetReq(client, ad, lpparam);
+        return ad;
     }
 
     /**
