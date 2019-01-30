@@ -1,10 +1,12 @@
-package com.lzp.luckymoney;
+package com.lzp.luckymoney.xposed;
 
 import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
+import android.net.Uri;
 
-import com.lzp.luckymoney.util.Log;
-import com.lzp.luckymoney.util.XmlToJson;
+import com.lzp.luckymoney.xposed.util.Log;
+import com.lzp.luckymoney.xposed.util.XmlToJson;
 
 import org.json.JSONObject;
 
@@ -12,8 +14,8 @@ import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
-import static com.lzp.luckymoney.util.Constants.TAG;
-import static com.lzp.luckymoney.util.Constants.TAG_WX_LOG;
+import static com.lzp.luckymoney.xposed.util.Constants.TAG;
+import static com.lzp.luckymoney.xposed.util.Constants.TAG_WX_LOG;
 
 public final class LuckyMoneyHelper {
     /**
@@ -40,6 +42,7 @@ public final class LuckyMoneyHelper {
      * @return
      */
     public static Object createNetReqClient(Activity topActivity, final XC_LoadPackage.LoadPackageParam lpparam) {
+        if (topActivity == null) return null;
         Class clzJ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader);
         Object objJ = XposedHelpers.newInstance(clzJ, topActivity, null);
         Log.e(TAG, "createNetReqClient=" + objJ);

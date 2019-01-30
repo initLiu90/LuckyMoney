@@ -1,4 +1,4 @@
-package com.lzp.luckymoney.util;
+package com.lzp.luckymoney.xposed.util;
 
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;

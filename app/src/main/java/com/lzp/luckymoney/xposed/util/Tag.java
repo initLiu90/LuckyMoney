@@ -1,4 +1,4 @@
-package com.lzp.luckymoney.util;
+package com.lzp.luckymoney.xposed.util;
 
 import java.util.ArrayList;
 import java.util.HashMap;

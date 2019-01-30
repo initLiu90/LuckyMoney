@@ -1,4 +1,4 @@
-package com.lzp.luckymoney;
+package com.lzp.luckymoney.xposed;
 
 import android.net.Uri;
 

@@ -1,4 +1,4 @@
-package com.lzp.luckymoney;
+package com.lzp.luckymoney.xposed;
 
 public final class LuckyMoneyReq {
     public final int msgType = 1;

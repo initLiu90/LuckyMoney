@@ -1,4 +1,4 @@
-package com.lzp.luckymoney.util;
+package com.lzp.luckymoney.xposed.util;
 
 public class Constants {
     public static final String TAG = "LuckyMoney";

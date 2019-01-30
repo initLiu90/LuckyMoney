@@ -27,6 +27,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name=".LuckyMoneySettingProvider"
+            android:authorities="com.lzp.luckymoney.provider"
+            android:exported="true"
+            android:enabled="true"/>
+
     </application>
 
 </manifest>

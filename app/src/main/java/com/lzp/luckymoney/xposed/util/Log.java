@@ -1,4 +1,4 @@
-package com.lzp.luckymoney.util;
+package com.lzp.luckymoney.xposed.util;
 
 public final class Log {
     public static void e(String tag, String msg) {
