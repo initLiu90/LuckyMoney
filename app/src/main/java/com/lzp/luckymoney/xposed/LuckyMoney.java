@@ -6,6 +6,8 @@ import android.content.Intent;
 
 import com.lzp.luckymoney.xposed.util.Log;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
@@ -23,6 +25,13 @@ public class LuckyMoney implements IXposedHookLoadPackage {
     private Object mClient;
     private Object mObj = new Object();
     private LuckyMoneyConfig mConfig = new LuckyMoneyConfig();
+    /**
+     * paymsgid和talker的映射表。
+     * client只创建一个，如果直接把talker作为参数传给initNetReqClient方法的话，
+     * 在initNetReqClient方法中创建的TimestampCallback匿名内部类中会拷贝一份talker对象，这样在发送luckymoney请求时，永远都是第一次创建client时，调用initNetReqClient方法传的参数talker。这样就会造成抢红包失败。
+     * 由于在timestamp中有paymsgid这个可以唯一标识一个支付信息，所以用paymsgid和talker做一个映射。
+     */
+    private ConcurrentHashMap<String, String> mTalkers = new ConcurrentHashMap<>();
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -48,8 +57,6 @@ public class LuckyMoney implements IXposedHookLoadPackage {
                     }
                 }
             });
-
-//            Debug.debug(lpparam);
         }
     }
 
@@ -58,13 +65,13 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         String arg2 = (String) args[1];
         ContentValues arg3 = (ContentValues) args[2];
         if (arg3 == null) return;
-//                    Debug.printReceivedMsg(arg1, arg2, arg3);
-        int type = arg3.getAsInteger("type");
 
+        int type = arg3.getAsInteger("type");
         if (arg1.equals("message") && arg2.equals("msgId") && (type == LUCKY_MONEY_C2C_MSG_TYPE || type == LUCKY_MONEY_GROUP_MSG_TYPE)) {
             Observable.just(new Object[]{arg3, lpparam})
                     .map(v -> {//step1:decode msg
                         final LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg((ContentValues) v[0]);
+                        mTalkers.put(luckyMoneyMsg.paymsgid, luckyMoneyMsg.talker);
                         Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
                         return new Object[]{luckyMoneyMsg, v[1]};
                     })
@@ -74,7 +81,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
                             Log.e(TAG, "grab luckymoney is disable");
                             interrupt = true;
                         } else {
-                            initNetReqClient((LuckyMoneyMsg) v[0], (XC_LoadPackage.LoadPackageParam) v[1]);
+                            initNetReqClient((XC_LoadPackage.LoadPackageParam) v[1]);
                         }
                         return new Object[]{interrupt, v[0], v[1]};
                     })
@@ -91,7 +98,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         }
     }
 
-    private void initNetReqClient(final LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
+    private void initNetReqClient(final XC_LoadPackage.LoadPackageParam lpparam) {
         if (mClient == null) {
             synchronized (mObj) {
                 if (mClient == null) {
@@ -104,7 +111,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
                         public void onReceive(Object wxTimestamp) {
                             //step4: when receive timestamp then send luckmoney request immediately.
                             if (mConfig.isEnabled()) {
-                                grabLuckMoney(wxTimestamp, luckyMoneyMsg.talker, lpparam);
+                                grabLuckMoney(wxTimestamp, lpparam);
                             } else {
                                 Log.e(TAG, "receive timestamp but not send luckymoney request due to is disabled");
                             }
@@ -119,12 +126,13 @@ public class LuckyMoney implements IXposedHookLoadPackage {
      * step4: when receive timestamp then send luckmoney request immediately.
      *
      * @param wxTimestamp
-     * @param talker
      * @param lpparam
      */
-    private void grabLuckMoney(Object wxTimestamp, String talker, XC_LoadPackage.LoadPackageParam lpparam) {
+    private void grabLuckMoney(Object wxTimestamp, XC_LoadPackage.LoadPackageParam lpparam) {
+        String paymsgid = (String) XposedHelpers.getObjectField(wxTimestamp, "kLZ");
+        String talker = mTalkers.get(paymsgid);
         Schedulers.computation().createWorker().schedule(() -> {
-            Log.e(TAG, "receive timestamp=" + wxTimestamp.toString());
+            Log.e(TAG, "receive timestamp=" + wxTimestamp.toString() + ",talker=" + talker);
             Object param1 = LuckyMoneyHelper.creatLuckyMoneyReqParam1(wxTimestamp, talker, lpparam);
             LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param1, lpparam);
         });
