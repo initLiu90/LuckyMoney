@@ -15,33 +15,28 @@ import io.reactivex.schedulers.Schedulers;
 import static com.lzp.luckymoney.xposed.util.Constants.TAG;
 
 public class LuckyMoneyConfig {
-    public interface ConfigChangeListener {
-        void onConfigChange(boolean enable);
-    }
-
-    private ConfigChangeListener mListener;
     private boolean mIsConfiged = false;
-
-    public LuckyMoneyConfig(ConfigChangeListener listener) {
-        mListener = listener;
-    }
+    private boolean mEnabled = false;
 
     public void config(Activity activity) {
-        Context context = activity != null ? activity.getApplicationContext() : null;
-        if (!mIsConfiged && context != null) {
-            Log.e(TAG, "config");
-            context.getContentResolver().registerContentObserver(Uri.parse("content://com.lzp.luckymoney.provider/grab"), true, new ContentObserver(null) {
-                @Override
-                public void onChange(boolean selfChange) {
-                    getConfig(context);
-                }
-            });
-            getConfig(context);
-            mIsConfiged = true;
+        if (!mIsConfiged) {
+            Context context = activity != null ? activity.getApplicationContext() : null;
+            if (context != null) {
+                Log.e(TAG, "config");
+                context.getContentResolver().registerContentObserver(Uri.parse("content://com.lzp.luckymoney.provider/grab"), true, new ContentObserver(null) {
+                    @Override
+                    public void onChange(boolean selfChange) {
+                        getConfig(context);
+                    }
+                });
+                getConfig(context);
+                mIsConfiged = true;
+            }
         }
     }
 
     private void getConfig(Context context) {
+        Log.e(TAG, "get config");
         Observable.just(0)
                 .map(v -> {
                     int result = 0;
@@ -55,7 +50,12 @@ public class LuckyMoneyConfig {
                 .subscribeOn(Schedulers.io())
                 .observeOn(AndroidSchedulers.mainThread())
                 .subscribe(enabled -> {
-                    mListener.onConfigChange(enabled);
+                    mEnabled = enabled;
+                    Log.e(TAG, "enabled=" + mEnabled);
                 });
+    }
+
+    public boolean isEnabled() {
+        return mEnabled;
     }
 }
