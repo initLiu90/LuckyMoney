@@ -10,6 +10,8 @@ import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
+import io.reactivex.Observable;
+import io.reactivex.schedulers.Schedulers;
 
 import static com.lzp.luckymoney.xposed.util.Constants.TAG;
 import static com.lzp.luckymoney.xposed.util.Constants.TAG_ERROR;
@@ -19,6 +21,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
     private static final int LUCKY_MONEY_GROUP_MSG_TYPE = 436207665;
     private Activity mTopActivity;
     private Object mClient;
+    private Object mObj = new Object();
     private LuckyMoneyConfig mConfig = new LuckyMoneyConfig();
 
     @Override
@@ -56,43 +59,74 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         ContentValues arg3 = (ContentValues) args[2];
         if (arg3 == null) return;
 //                    Debug.printReceivedMsg(arg1, arg2, arg3);
-
         int type = arg3.getAsInteger("type");
+
         if (arg1.equals("message") && arg2.equals("msgId") && (type == LUCKY_MONEY_C2C_MSG_TYPE || type == LUCKY_MONEY_GROUP_MSG_TYPE)) {
-            final LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg(arg3);
-            Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
-            grabLuckmoney(luckyMoneyMsg, lpparam);
+            Observable.just(new Object[]{arg3, lpparam})
+                    .map(v -> {//step1:decode msg
+                        final LuckyMoneyMsg luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg((ContentValues) v[0]);
+                        Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
+                        return new Object[]{luckyMoneyMsg, v[1]};
+                    })
+                    .map(v -> {//step2:check config and init client.  0-->luckymoneymsg 1-->lpparam
+                        boolean interrupt = false;
+                        if (!mConfig.isEnabled()) {
+                            Log.e(TAG, "grab luckymoney is disable");
+                            interrupt = true;
+                        } else {
+                            initNetReqClient((LuckyMoneyMsg) v[0], (XC_LoadPackage.LoadPackageParam) v[1]);
+                        }
+                        return new Object[]{interrupt, v[0], v[1]};
+                    })
+                    .map(v -> {//step3:send timestamp request.   0-->interrupt 1-->luckymoneymsg 2-->lpparam
+                        boolean interrupt = (Boolean) v[0];
+                        if (!interrupt) {
+                            Object param1 = LuckyMoneyHelper.createTimestampReqParam1((XC_LoadPackage.LoadPackageParam) v[2], (LuckyMoneyMsg) v[1]);
+                            LuckyMoneyHelper.sendTimestampReq(mClient, param1, lpparam);
+                        }
+                        return interrupt;
+                    })
+                    .subscribeOn(Schedulers.io())
+                    .subscribe();
         }
     }
 
-    private void grabLuckmoney(final LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!mConfig.isEnabled()) {
-            Log.e(TAG, "grab luckymoney is disable");
-            return;
-        }
-
+    private void initNetReqClient(final LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
         if (mClient == null) {
-            //step1: create net request client
-            mClient = LuckyMoneyHelper.createNetReqClient(mTopActivity, lpparam);
-            if (mClient == null) return;
-            //step2: add a listener on timestamp request
-            LuckyMoneyHelper.registeTimestampCallback(lpparam, new TimestampCallback() {
-                @Override
-                public void onReceive(Object wxTimestamp) {
-                    //step3: send luckmoney request
-                    if (mConfig.isEnabled()) {
-                        Log.e(TAG, "receive timestamp=" + wxTimestamp.toString());
-                        Object param1 = LuckyMoneyHelper.creatLuckyMoneyReqParam1(wxTimestamp, luckyMoneyMsg.talker, lpparam);
-                        LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param1, lpparam);
-                    } else {
-                        Log.e(TAG, "receive timestamp but not send luckymoney request due to is disabled");
-                    }
+            synchronized (mObj) {
+                if (mClient == null) {
+                    //step2-1: create net request client
+                    mClient = LuckyMoneyHelper.createNetReqClient(mTopActivity, lpparam);
+                    if (mClient == null) return;
+                    //step2-2: add a listener on timestamp request
+                    LuckyMoneyHelper.registeTimestampCallback(lpparam, new TimestampCallback() {
+                        @Override
+                        public void onReceive(Object wxTimestamp) {
+                            //step4: when receive timestamp then send luckmoney request immediately.
+                            if (mConfig.isEnabled()) {
+                                grabLuckMoney(wxTimestamp, luckyMoneyMsg.talker, lpparam);
+                            } else {
+                                Log.e(TAG, "receive timestamp but not send luckymoney request due to is disabled");
+                            }
+                        }
+                    });
                 }
-            });
+            }
         }
+    }
 
-        //step4: send timestamp request
-        Object param1 = LuckyMoneyHelper.createTimestampReqParam1(lpparam, luckyMoneyMsg);
-        LuckyMoneyHelper.sendTimestampReq(mClient, param1, lpparam);
+    /**
+     * step4: when receive timestamp then send luckmoney request immediately.
+     *
+     * @param wxTimestamp
+     * @param talker
+     * @param lpparam
+     */
+    private void grabLuckMoney(Object wxTimestamp, String talker, XC_LoadPackage.LoadPackageParam lpparam) {
+        Schedulers.computation().createWorker().schedule(() -> {
+            Log.e(TAG, "receive timestamp=" + wxTimestamp.toString());
+            Object param1 = LuckyMoneyHelper.creatLuckyMoneyReqParam1(wxTimestamp, talker, lpparam);
+            LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param1, lpparam);
+        });
     }
 }
