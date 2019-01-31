@@ -6,6 +6,6 @@ public final class Log {
     }
 
     public static void e(String tag, String msg, Throwable throwable) {
-        Log.e(tag, "===================" + msg + "====================", throwable);
+        android.util.Log.e(tag, "===================" + msg + "====================", throwable);
     }
 }
