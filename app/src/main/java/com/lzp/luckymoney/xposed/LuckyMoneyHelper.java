@@ -47,6 +47,17 @@ public final class LuckyMoneyHelper {
         if (topActivity == null) return null;
         Class clzJ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader);
         Object objJ = XposedHelpers.newInstance(clzJ, topActivity, null);
+        XposedHelpers.callMethod(objJ,"jr",1554);
+        XposedHelpers.callMethod(objJ,"jr",1575);
+        XposedHelpers.callMethod(objJ,"jr",1668);
+        XposedHelpers.callMethod(objJ,"jr",1581);
+        XposedHelpers.callMethod(objJ,"jr",1685);
+        XposedHelpers.callMethod(objJ,"jr",1585);
+        XposedHelpers.callMethod(objJ,"jr",1514);
+        XposedHelpers.callMethod(objJ,"jr",1682);
+        XposedHelpers.callMethod(objJ,"jr",1612);
+        XposedHelpers.callMethod(objJ,"jr",1643);
+        XposedHelpers.callMethod(objJ,"jr",1558);
         Log.e(TAG, "createNetReqClient=" + objJ);
         return objJ;
     }
@@ -135,140 +146,5 @@ public final class LuckyMoneyHelper {
         Class clzAD = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader);
         Object ad = XposedHelpers.newInstance(clzAD, req.msgType, req.bxk, req.kLZ, req.ceR, req.baX, req.GH, req.username, req.version, req.kRC);
         return ad;
-    }
-
-    /**
-     * hook weichat log method
-     *
-     * @param lpparam
-     */
-    public static void hookLogMethod(XC_LoadPackage.LoadPackageParam lpparam) {
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "i", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj == null ? "" : obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "d", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "v", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "k", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "l", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "w", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "e", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
-
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "f", String.class, String.class, Object[].class, new XC_MethodHook() {
-            @Override
-            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                String tag = (String) param.args[0];
-                String msg = (String) param.args[1];
-                Object[] objArr = (Object[]) param.args[2];
-                StringBuilder stringBuilder = new StringBuilder();
-                if (objArr != null) {
-                    for (Object obj : objArr) {
-                        stringBuilder.append(obj.toString() + ",");
-                    }
-                }
-                Log.e(TAG_WX_LOG, "tag=" + tag + ",msg=" + msg + ",objArr=" + stringBuilder.toString());
-            }
-        });
     }
 }
