@@ -2,8 +2,6 @@ package com.lzp.luckymoney.xposed;
 
 import android.app.Activity;
 import android.content.ContentValues;
-import android.content.Context;
-import android.net.Uri;
 
 import com.lzp.luckymoney.xposed.util.Log;
 import com.lzp.luckymoney.xposed.util.XmlToJson;
@@ -15,7 +13,6 @@ import de.robv.android.xposed.XposedHelpers;
 import de.robv.android.xposed.callbacks.XC_LoadPackage;
 
 import static com.lzp.luckymoney.xposed.util.Constants.TAG;
-import static com.lzp.luckymoney.xposed.util.Constants.TAG_WX_LOG;
 
 public final class LuckyMoneyHelper {
     /**
@@ -43,56 +40,64 @@ public final class LuckyMoneyHelper {
      * @param lpparam
      * @return
      */
-    public static Object createNetReqClient(Activity topActivity, final XC_LoadPackage.LoadPackageParam lpparam) {
+    public static Object createNetReqClient(Activity topActivity, final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
         if (topActivity == null) return null;
-        Class clzJ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader);
-        Object objJ = XposedHelpers.newInstance(clzJ, topActivity, null);
-        XposedHelpers.callMethod(objJ,"jr",1554);
-        XposedHelpers.callMethod(objJ,"jr",1575);
-        XposedHelpers.callMethod(objJ,"jr",1668);
-        XposedHelpers.callMethod(objJ,"jr",1581);
-        XposedHelpers.callMethod(objJ,"jr",1685);
-        XposedHelpers.callMethod(objJ,"jr",1585);
-        XposedHelpers.callMethod(objJ,"jr",1514);
-        XposedHelpers.callMethod(objJ,"jr",1682);
-        XposedHelpers.callMethod(objJ,"jr",1612);
-        XposedHelpers.callMethod(objJ,"jr",1643);
-        XposedHelpers.callMethod(objJ,"jr",1558);
-        Log.e(TAG, "createNetReqClient=" + objJ);
-        return objJ;
+        Class clzS = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.s", lpparam.classLoader);
+        Object objS = XposedHelpers.newInstance(clzS, topActivity, null);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1554);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1575);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1668);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1581);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1685);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1585);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1514);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1682);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1612);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1643);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 1558);
+        XposedHelpers.callMethod(objS, "addSceneEndListener", 2715);
+        Log.e(TAG, "createNetReqClient=" + objS);
+
+        registerPreGrabReqCallback(lpparam, callback);
+
+        return objS;
     }
 
     /**
      * 1. Hook com.tencent.mm.plugin.luckymoney.b.j.a(int,int,string,l) method, to get response after send timestamp request.
      * 2. After get the server response,then get timestamp from the response data. Then send a request to get luckymoney.
      */
-    public static void registeTimestampCallback(final XC_LoadPackage.LoadPackageParam lpparam, final TimestampCallback callback) {
-        Log.e(TAG, "registeTimestampCallback");
-        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.b.j", lpparam.classLoader, "a",
-                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.ab.l", lpparam.classLoader),
+    private static void registerPreGrabReqCallback(final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
+        Log.e(TAG, "registerPreGrabReqCallback");
+        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.model.s", lpparam.classLoader, "onSceneEnd",
+                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.aj.m", lpparam.classLoader),
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        Object wxtimestamp = param.args[3];
-                        if (wxtimestamp.getClass().getName().equals("com.tencent.mm.plugin.luckymoney.b.ag")) {
-                            callback.onReceive(wxtimestamp);
+                        int arg1 = (int) param.args[0];
+                        int arg2 = (int) param.args[1];
+                        Object preGrabRsp = param.args[3];
+                        if (arg1 == 0 &&
+                                arg2 == 0
+                                && preGrabRsp.getClass().getName().equals("com.tencent.mm.plugin.luckymoney.model.aq")) {
+                            callback.onReceive(preGrabRsp);
                         }
                     }
                 });
     }
 
     /**
-     * Create com.tencent.mm.plugin.luckymoney.b.ag object and will be used while send timestamp request
+     * Create com.tencent.mm.plugin.luckymoney.model.aq object and will be used while send pre luckmonkey request
      *
      * @param lpparam
      * @param luckyMoneyMsg
-     * @return com.tencent.mm.plugin.luckymoney.b.ag
+     * @return com.tencent.mm.plugin.luckymoney.model.aq
      */
-    public static Object createTimestampReqParam1(final XC_LoadPackage.LoadPackageParam lpparam, LuckyMoneyMsg luckyMoneyMsg) {
-        Class clzAG = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ag", lpparam.classLoader);
-        Object objAG = XposedHelpers.newInstance(clzAG, luckyMoneyMsg.channelid, luckyMoneyMsg.sendid, luckyMoneyMsg.nativeurl, luckyMoneyMsg.way, luckyMoneyMsg.version);
-        Log.e(TAG, "createTimestampReqParam1=" + objAG.toString());
-        return objAG;
+    public static Object createPreLuckyMoneyParam(final XC_LoadPackage.LoadPackageParam lpparam, LuckyMoneyMsg luckyMoneyMsg) {
+        Class clzAQ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.aq", lpparam.classLoader);
+        Object objAQ = XposedHelpers.newInstance(clzAQ, luckyMoneyMsg.channelid, luckyMoneyMsg.sendid, luckyMoneyMsg.nativeurl, luckyMoneyMsg.way, luckyMoneyMsg.version);
+        Log.e(TAG, "createPreLuckyMoneyParam=" + objAQ.toString());
+        return objAQ;
     }
 
     /**
@@ -104,11 +109,11 @@ public final class LuckyMoneyHelper {
      */
     private static void sendNetReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
         Log.e(TAG, "sendNetReq");
-        XposedHelpers.callMethod(client, "b", param1, false);
+        XposedHelpers.callMethod(client, "doSceneProgress", param1, false);
     }
 
-    public static void sendTimestampReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
-        Log.e(TAG, "sendTimestampReq client=" + client.toString() + ",param1=" + param1.toString());
+    public static void sendPreLuckyMoneyReq(Object client, Object param1, final XC_LoadPackage.LoadPackageParam lpparam) {
+        Log.e(TAG, "sendPreLuckyMoneyReq client=" + client.toString() + ",param1=" + param1.toString());
         sendNetReq(client, param1, lpparam);
     }
 
@@ -120,31 +125,27 @@ public final class LuckyMoneyHelper {
     /**
      * The real request to get luckymony.
      *
-     * @param wxTimestamp
-     * @param talker
+     * @param preLuckMoneyRsp
      * @param lpparam
      */
-    public static Object creatLuckyMoneyReqParam1(final Object wxTimestamp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
-        Class clzBO = XposedHelpers.findClass(" com.tencent.mm.plugin.luckymoney.b.o", lpparam.classLoader);
-        String baX = (String) XposedHelpers.callStaticMethod(clzBO, "baX");
+    public static Object createLuckyMoneyReqParam(final Object preLuckMoneyRsp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
+        int msgType = (int) XposedHelpers.getObjectField(preLuckMoneyRsp, "msgType");
+        int channelId = (int) XposedHelpers.getObjectField(preLuckMoneyRsp, "cAL");
+        String sendId = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "pUC");
+        String nativeUrl = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "dss");
 
-        Class clzQ = XposedHelpers.findClass("com.tencent.mm.model.q", lpparam.classLoader);
-        String GH = (String) XposedHelpers.callStaticMethod(clzQ, "GH");
+        Class clzX = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.x", lpparam.classLoader);
+        String headImg = (String) XposedHelpers.callStaticMethod(clzX, "cfr");
 
-        LuckyMoneyReq req = new LuckyMoneyReq.Builder()
-                .bxk(XposedHelpers.getIntField(wxTimestamp, "bxk"))
-                .kLZ((String) XposedHelpers.getObjectField(wxTimestamp, "kLZ"))
-                .ceR((String) XposedHelpers.getObjectField(wxTimestamp, "ceR"))
-                .kRC((String) XposedHelpers.getObjectField(wxTimestamp, "kRC"))
-                .baX(baX)
-                .GH(GH)
-                .username(talker)
-                .build();
+        Class clzU = XposedHelpers.findClass("com.tencent.mm.model.u", lpparam.classLoader);
+        String nickName = (String) XposedHelpers.callStaticMethod(clzU, "akp");
 
-        Log.e(TAG, "LuckyMoneyReq=" + req.toString());
+        String ver = "v1.0";
 
-        Class clzAD = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader);
-        Object ad = XposedHelpers.newInstance(clzAD, req.msgType, req.bxk, req.kLZ, req.ceR, req.baX, req.GH, req.username, req.version, req.kRC);
-        return ad;
+        String timingIdentifier = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "qaN");
+
+        Class clzAN = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.an", lpparam.classLoader);
+        Object objAn = XposedHelpers.newInstance(clzAN, msgType, channelId, sendId, nativeUrl, headImg, nickName, talker, ver, timingIdentifier);
+        return objAn;
     }
 }

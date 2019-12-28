@@ -52,7 +52,7 @@ public final class Debug {
      * @param lpparam
      */
     public static void hookLogMethod(XC_LoadPackage.LoadPackageParam lpparam) {
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "i", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "i", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -68,7 +68,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "d", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "d", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -84,7 +84,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "v", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "v", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -100,7 +100,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "k", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "f", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -116,7 +116,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "l", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "e", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -132,7 +132,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "w", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "w", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -148,7 +148,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "e", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "a", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];
@@ -164,7 +164,7 @@ public final class Debug {
             }
         });
 
-        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.x", lpparam.classLoader, "f", String.class, String.class, Object[].class, new XC_MethodHook() {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.sdk.platformtools.ab", lpparam.classLoader, "b", String.class, String.class, Object[].class, new XC_MethodHook() {
             @Override
             protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
                 String tag = (String) param.args[0];

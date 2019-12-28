@@ -13,7 +13,6 @@ public class LuckyMoneyMsg {
     public final int way;
     public final String paymsgid;
 
-
     private LuckyMoneyMsg(String nativeurl, String sendid, int channelid, String talker, int way, String paymsgid) {
         this.nativeurl = nativeurl;
         this.sendid = sendid;
