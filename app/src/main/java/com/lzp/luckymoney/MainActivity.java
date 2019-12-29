@@ -30,6 +30,6 @@ public class MainActivity extends AppCompatActivity {
 
         mTxtGrag = findViewById(R.id.grab_text);
 
-        SettingUtil.getSetting(MainActivity.this, LuckyMoneySettingProvider.GRAB);
+        mSwtGrag.setChecked(SettingUtil.getSetting(MainActivity.this, LuckyMoneySettingProvider.GRAB));
     }
 }

@@ -14,7 +14,7 @@ public class LuckyMoneyConfig {
 
     private static LuckyMoneyConfig sInstance;
 
-    private boolean mEnabled = false;
+    private boolean mEnabled = true;
 
     public static synchronized LuckyMoneyConfig getInstance(Context context) {
         if (sInstance == null) {
@@ -34,17 +34,20 @@ public class LuckyMoneyConfig {
                 }
             });
             mEnabled = isEnabled(applicationContext);
+        } else {
+            Log.e(TAG, "config failed on null context");
         }
     }
 
     private boolean isEnabled(Context context) {
-        Log.e(TAG, "get config");
         int result = 0;
         Cursor cursor = context.getContentResolver().query(Uri.parse("content://com.lzp.luckymoney.provider/grab"), null, null, null, null);
         if (cursor != null && cursor.getCount() > 0) {
             cursor.moveToFirst();
             result = cursor.getInt(0);
         }
+
+        Log.e(TAG, "get config enabled=" + (result == 1));
         return result == 1;
     }
 

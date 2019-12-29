@@ -6,6 +6,9 @@ import android.content.Intent;
 
 import com.lzp.luckymoney.xposed.util.Log;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
 import de.robv.android.xposed.IXposedHookLoadPackage;
 import de.robv.android.xposed.XC_MethodHook;
 import de.robv.android.xposed.XposedHelpers;
@@ -23,7 +26,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
     private Activity mTopActivity;
     private Object mClient;
     private Object mObj = new Object();
-    private LuckyMoneyConfig mConfig;
+    private Map<String, String> talkerSet = new ConcurrentHashMap();
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -35,7 +38,6 @@ public class LuckyMoney implements IXposedHookLoadPackage {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
                     mTopActivity = (Activity) param.getResult();
-                    mConfig = LuckyMoneyConfig.getInstance(mTopActivity);
                 }
             });
 
@@ -65,7 +67,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step1:decode msg
     private LuckyMoneyMsg decodeMsg(final Object[] args) {
-        if (!mConfig.isEnabled()) {
+        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
             return null;
         }
 
@@ -74,14 +76,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         ContentValues contentValues = (ContentValues) args[2];
 
         if (DEBUG) {
-            Log.e(TAG, "arg1=" + arg1);
-            Log.e(TAG, "arg2=" + arg2);
-            if (contentValues != null) {
-                for (String key : contentValues.keySet()) {
-                    Object value = contentValues.get(key);
-                    Log.e(TAG, "key=" + key + ", value=" + value);
-                }
-            }
+            Debug.printReceivedMsg(arg1, arg2, contentValues);
         }
 
         if (contentValues == null) return null;
@@ -94,6 +89,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         if (arg1.equals("message") && arg2.equals("msgId") && (type == LUCKY_MONEY_C2C_MSG_TYPE || type == LUCKY_MONEY_GROUP_MSG_TYPE)) {
             //step1:decode message
             luckyMoneyMsg = LuckyMoneyHelper.decodeLuckyMoneyMsg(contentValues);
+            talkerSet.put(luckyMoneyMsg.paymsgid, luckyMoneyMsg.talker);
             if (DEBUG) {
                 Log.e(TAG, "luckymoneymsg=" + luckyMoneyMsg.toString());
             }
@@ -103,7 +99,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step2:init net request client
     private void initNetReqClient(final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!mConfig.isEnabled()) {
+        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
             return;
         }
 
@@ -123,7 +119,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step3:send pre luckyMoney request
     private void sendPreLuckyMoneyReq(LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!mConfig.isEnabled()) {
+        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
             return;
         }
 
@@ -133,15 +129,18 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step4:grab lucky money
     private void grabLuckyMoney(final Object preGrabRsp, final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!mConfig.isEnabled()) {
+        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
             return;
         }
 
-        String sendUserName = (String) XposedHelpers.getObjectField(preGrabRsp, "pYP");
-        if (DEBUG) {
-            Log.e(TAG, "sendUserName=" + sendUserName);
-        }
-        Object param1 = LuckyMoneyHelper.createLuckyMoneyReqParam(preGrabRsp, sendUserName, lpparam);
-        LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param1, lpparam);
+        Schedulers.io().scheduleDirect(() -> {
+            String paymsgid = (String) XposedHelpers.getObjectField(preGrabRsp, "pUC");
+            String talker = talkerSet.remove(paymsgid);
+            if (DEBUG) {
+                Log.e(TAG, "paymsgid=" + paymsgid + ", talker=" + (talker == null ? "null" : talker));
+            }
+            Object param = LuckyMoneyHelper.createLuckyMoneyReqParam(preGrabRsp, talker, lpparam);
+            LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param, lpparam);
+        });
     }
 }

@@ -1,6 +1,8 @@
 package com.lzp.luckymoney.xposed;
 
+import android.app.Activity;
 import android.content.ContentValues;
+import android.os.Bundle;
 
 import com.lzp.luckymoney.xposed.util.Log;
 
@@ -12,31 +14,16 @@ import static com.lzp.luckymoney.xposed.util.Constants.TAG;
 import static com.lzp.luckymoney.xposed.util.Constants.TAG_WX_LOG;
 
 public final class Debug {
-    public static void debug(final XC_LoadPackage.LoadPackageParam lpparam) {
-        XposedHelpers.findAndHookConstructor("com.tencent.mm.plugin.luckymoney.b.ag", lpparam.classLoader,
-                int.class, String.class, String.class, int.class, String.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        Log.e(TAG, "ag.arg0=" + param.args[0] + ",ag.arg1=" + param.args[1] + ",ag.arg2=" + param.args[2] + ",ag.arg3=" + param.args[3] + ",ag.arg4=" + param.args[4]);
-                    }
-                });
-        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyReceiveUI", lpparam.classLoader, "d",
-                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.ab.l", lpparam.classLoader),
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        Log.e(TAG, "ReceiveUI.d.arg0=" + param.args[0] + ",ReceiveUI.d.arg1=" + param.args[1] + ",ReceiveUI.d.arg2=" + param.args[2] + ",ReceiveUI.d.arg3=" + param.args[3].getClass().getName());
-                    }
-                });
-        XposedHelpers.findAndHookConstructor("com.tencent.mm.plugin.luckymoney.b.ad", lpparam.classLoader,
-                int.class, int.class, String.class, String.class, String.class, String.class, String.class, String.class, String.class,
-                new XC_MethodHook() {
-                    @Override
-                    protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
-                        Log.e(TAG, "ad.arg0=" + param.args[0] + ",ad.arg1=" + param.args[1] + ",ad.arg2=" + param.args[2] + ",ad.arg3=" + param.args[3] + ",ad.arg4=" + param.args[4] + ",ad.arg5=" + param.args[5] + ",ad.arg6=" + param.args[6] + ",ad.arg7=" + param.args[7]);
-                    }
-                });
+    public static void hookLuckyMoneyNotHookReceiveUI(final XC_LoadPackage.LoadPackageParam lpparam) {
+        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.ui.LuckyMoneyNotHookReceiveUI", lpparam.classLoader, "onCreate", Bundle.class, new XC_MethodHook() {
+            @Override
+            protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
+                super.beforeHookedMethod(param);
+                Activity activity = (Activity) param.thisObject;
+                String key_username = activity.getIntent().getStringExtra("key_username");
+                Log.e(TAG, "key_username=" + key_username);
+            }
+        });
     }
 
     public static void printReceivedMsg(String arg1, String arg2, ContentValues arg3) {
