@@ -40,7 +40,7 @@ public class LuckyMoneyConfig {
     }
 
     private boolean isEnabled(Context context) {
-        int result = 0;
+        int result = 1;
         Cursor cursor = context.getContentResolver().query(Uri.parse("content://com.lzp.luckymoney.provider/grab"), null, null, null, null);
         if (cursor != null && cursor.getCount() > 0) {
             cursor.moveToFirst();
