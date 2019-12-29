@@ -1,2 +1,3 @@
-A xposed plugin for grab Weichat lucky money which based on Weichat 6.6.7. 
-Also support to grab lucky money which send by wechat 7.0.
+A xposed plugin for grab Weichat lucky money which based on Weichat 7.0.10. 
+
+[wechat7010](https://pan.baidu.com/s/1tNWXaAE6c2rioDh0EFyBXA)
