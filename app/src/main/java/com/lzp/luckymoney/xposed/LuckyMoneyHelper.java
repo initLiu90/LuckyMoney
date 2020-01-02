@@ -1,7 +1,7 @@
 package com.lzp.luckymoney.xposed;
 
-import android.app.Activity;
 import android.content.ContentValues;
+import android.content.Context;
 
 import com.lzp.luckymoney.xposed.util.Log;
 import com.lzp.luckymoney.xposed.util.XmlToJson;
@@ -36,14 +36,14 @@ public final class LuckyMoneyHelper {
     /**
      * create a client to send network request
      *
-     * @param topActivity
+     * @param context
      * @param lpparam
      * @return
      */
-    public static Object createNetReqClient(Activity topActivity, final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
-        if (topActivity == null) return null;
+    public static Object createNetReqClient(Context context, final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
+        if (context == null) return null;
         Class clzS = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.s", lpparam.classLoader);
-        Object objS = XposedHelpers.newInstance(clzS, topActivity, null);
+        Object objS = XposedHelpers.newInstance(clzS, context, null);
         XposedHelpers.callMethod(objS, "addSceneEndListener", 1554);
         XposedHelpers.callMethod(objS, "addSceneEndListener", 1575);
         XposedHelpers.callMethod(objS, "addSceneEndListener", 1668);

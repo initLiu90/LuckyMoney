@@ -1,8 +1,7 @@
 package com.lzp.luckymoney.xposed;
 
-import android.app.Activity;
+import android.app.Application;
 import android.content.ContentValues;
-import android.content.Intent;
 
 import com.lzp.luckymoney.xposed.util.Log;
 
@@ -23,10 +22,10 @@ import static com.lzp.luckymoney.xposed.util.Constants.TAG_ERROR;
 public class LuckyMoney implements IXposedHookLoadPackage {
     private static final long LUCKY_MONEY_C2C_MSG_TYPE = 436207665;
     private static final long LUCKY_MONEY_GROUP_MSG_TYPE = 436207665;
-    private Activity mTopActivity;
     private Object mClient;
     private Object mObj = new Object();
     private Map<String, String> talkerSet = new ConcurrentHashMap();
+    private Application mApplication;
 
     @Override
     public void handleLoadPackage(final XC_LoadPackage.LoadPackageParam lpparam) {
@@ -34,10 +33,13 @@ public class LuckyMoney implements IXposedHookLoadPackage {
         if (lpparam.packageName.equals("com.tencent.mm")) {
             Log.e(TAG, "hook weichat");
 
-            XposedHelpers.findAndHookMethod("android.app.Instrumentation", lpparam.classLoader, "newActivity", ClassLoader.class, String.class, Intent.class, new XC_MethodHook() {
+            Class clzInstrumentation = XposedHelpers.findClass("android.app.Instrumentation", lpparam.classLoader);
+            XposedHelpers.findAndHookMethod("android.app.LoadedApk", lpparam.classLoader, "makeApplication", boolean.class, clzInstrumentation, new XC_MethodHook() {
                 @Override
                 protected void afterHookedMethod(MethodHookParam param) throws Throwable {
-                    mTopActivity = (Activity) param.getResult();
+                    super.afterHookedMethod(param);
+                    mApplication = (Application) param.getResult();
+                    Log.e(TAG, "hook makeApplicaiton mApplication is null " + (mApplication == null));
                 }
             });
 
@@ -67,7 +69,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step1:decode msg
     private LuckyMoneyMsg decodeMsg(final Object[] args) {
-        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
+        if (!isEnable()) {
             return null;
         }
 
@@ -99,14 +101,17 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step2:init net request client
     private void initNetReqClient(final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
+        if (!isEnable()) {
             return;
         }
 
         if (mClient == null) {
             synchronized (mObj) {
                 if (mClient == null) {
-                    mClient = LuckyMoneyHelper.createNetReqClient(mTopActivity, lpparam, (preGrabRsp -> {
+                    mClient = LuckyMoneyHelper.createNetReqClient(mApplication, lpparam, (preGrabRsp -> {
+                        if (DEBUG) {
+                            Log.e(TAG, "receive pre grab response");
+                        }
                         grabLuckyMoney(preGrabRsp, lpparam);
                     }));
                     if (mClient == null) {
@@ -119,7 +124,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step3:send pre luckyMoney request
     private void sendPreLuckyMoneyReq(LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
+        if (!isEnable()) {
             return;
         }
 
@@ -129,7 +134,7 @@ public class LuckyMoney implements IXposedHookLoadPackage {
 
     //step4:grab lucky money
     private void grabLuckyMoney(final Object preGrabRsp, final XC_LoadPackage.LoadPackageParam lpparam) {
-        if (!LuckyMoneyConfig.getInstance(mTopActivity).isEnabled()) {
+        if (!isEnable()) {
             return;
         }
 
@@ -142,5 +147,20 @@ public class LuckyMoney implements IXposedHookLoadPackage {
             Object param = LuckyMoneyHelper.createLuckyMoneyReqParam(preGrabRsp, talker, lpparam);
             LuckyMoneyHelper.sendLuckyMoneyReq(mClient, param, lpparam);
         });
+    }
+
+    private boolean isEnable() {
+        if (mApplication == null) {
+            Log.e(TAG, "mApplication is null disable lucky");
+            return false;
+        }
+
+        if (!LuckyMoneyConfig.getInstance(mApplication).isEnabled()) {
+            if (DEBUG) {
+                Log.e(TAG, "lucky is disabled");
+            }
+            return false;
+        }
+        return true;
     }
 }
