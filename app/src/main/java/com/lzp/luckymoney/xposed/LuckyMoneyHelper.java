@@ -42,25 +42,30 @@ public final class LuckyMoneyHelper {
      */
     public static Object createNetReqClient(Context context, final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
         if (context == null) return null;
-        Class clzS = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.s", lpparam.classLoader);
-        Object objS = XposedHelpers.newInstance(clzS, context, null);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1554);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1575);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1668);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1581);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1685);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1585);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1514);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1682);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1612);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1643);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 1558);
-        XposedHelpers.callMethod(objS, "addSceneEndListener", 2715);
-        Log.e(TAG, "createNetReqClient=" + objS);
+        Class clzW = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.w", lpparam.classLoader);
+        Object objW = XposedHelpers.newInstance(clzW, context, null);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1554);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1575);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1668);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1581);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1685);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1585);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1514);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1682);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1612);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1643);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 1558);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 2715);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 4605);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 4915);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 4536);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 5148);
+        XposedHelpers.callMethod(objW, "addSceneEndListener", 4395);
+//        Log.e(TAG, "createNetReqClient=" + objW);
 
         registerPreGrabReqCallback(lpparam, callback);
 
-        return objS;
+        return objW;
     }
 
     /**
@@ -69,8 +74,8 @@ public final class LuckyMoneyHelper {
      */
     private static void registerPreGrabReqCallback(final XC_LoadPackage.LoadPackageParam lpparam, final PreGrabReqCallback callback) {
         Log.e(TAG, "registerPreGrabReqCallback");
-        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.model.s", lpparam.classLoader, "onSceneEnd",
-                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.aj.m", lpparam.classLoader),
+        XposedHelpers.findAndHookMethod("com.tencent.mm.plugin.luckymoney.model.w", lpparam.classLoader, "onSceneEnd",
+                int.class, int.class, String.class, XposedHelpers.findClass("com.tencent.mm.aj.q", lpparam.classLoader),
                 new XC_MethodHook() {
                     @Override
                     protected void beforeHookedMethod(MethodHookParam param) throws Throwable {
@@ -79,7 +84,7 @@ public final class LuckyMoneyHelper {
                         Object preGrabRsp = param.args[3];
                         if (arg1 == 0 &&
                                 arg2 == 0
-                                && preGrabRsp.getClass().getName().equals("com.tencent.mm.plugin.luckymoney.model.aq")) {
+                                && preGrabRsp.getClass().getName().equals("com.tencent.mm.plugin.luckymoney.model.ba")) {
                             callback.onReceive(preGrabRsp);
                         }
                     }
@@ -87,16 +92,23 @@ public final class LuckyMoneyHelper {
     }
 
     /**
-     * Create com.tencent.mm.plugin.luckymoney.model.aq object and will be used while send pre luckmonkey request
+     * Create com.tencent.mm.plugin.luckymoney.model.bb or com.tencent.mm.plugin.luckymoney.model.ba object that will be used while send pre luckmonkey request
      *
      * @param lpparam
      * @param luckyMoneyMsg
      * @return com.tencent.mm.plugin.luckymoney.model.aq
      */
     public static Object createPreLuckyMoneyParam(final XC_LoadPackage.LoadPackageParam lpparam, LuckyMoneyMsg luckyMoneyMsg) {
-        Class clzAQ = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.aq", lpparam.classLoader);
-        Object objAQ = XposedHelpers.newInstance(clzAQ, luckyMoneyMsg.channelid, luckyMoneyMsg.sendid, luckyMoneyMsg.nativeurl, luckyMoneyMsg.way, luckyMoneyMsg.version);
-        Log.e(TAG, "createPreLuckyMoneyParam=" + objAQ.toString());
+        Class clz;
+        if (luckyMoneyMsg.isUnionSceneId()) {
+            clz = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.bb", lpparam.classLoader);
+        } else {
+            clz = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.ba", lpparam.classLoader);
+        }
+        Object objAQ = XposedHelpers.newInstance(clz, luckyMoneyMsg.channelid, luckyMoneyMsg.sendid, luckyMoneyMsg.nativeurl, luckyMoneyMsg.way, luckyMoneyMsg.version);
+        if (LuckyMoneyConfig.DEBUG) {
+            Log.e(TAG, "createPreLuckyMoneyParam=" + objAQ.toString());
+        }
         return objAQ;
     }
 
@@ -128,24 +140,33 @@ public final class LuckyMoneyHelper {
      * @param preLuckMoneyRsp
      * @param lpparam
      */
-    public static Object createLuckyMoneyReqParam(final Object preLuckMoneyRsp, final String talker, final XC_LoadPackage.LoadPackageParam lpparam) {
+    public static Object createLuckyMoneyReqParam(final Object preLuckMoneyRsp, final LuckyMoneyMsg luckyMoneyMsg, final XC_LoadPackage.LoadPackageParam lpparam) {
         int msgType = (int) XposedHelpers.getObjectField(preLuckMoneyRsp, "msgType");
-        int channelId = (int) XposedHelpers.getObjectField(preLuckMoneyRsp, "cAL");
-        String sendId = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "pUC");
-        String nativeUrl = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "dss");
+        int channelId = XposedHelpers.getIntField(preLuckMoneyRsp, "channelId");
+        String sendId = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "wVk");
+        String nativeUrl = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "dEZ");
 
-        Class clzX = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.x", lpparam.classLoader);
-        String headImg = (String) XposedHelpers.callStaticMethod(clzX, "cfr");
+        Class clzAC = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.ac", lpparam.classLoader);
+        String headImg = (String) XposedHelpers.callStaticMethod(clzAC, "dEb");
 
-        Class clzU = XposedHelpers.findClass("com.tencent.mm.model.u", lpparam.classLoader);
-        String nickName = (String) XposedHelpers.callStaticMethod(clzU, "akp");
+        Class clzU = XposedHelpers.findClass("com.tencent.mm.model.x", lpparam.classLoader);
+        String nickName = (String) XposedHelpers.callStaticMethod(clzU, "aEs");
+
+        String userName = luckyMoneyMsg.talker;
 
         String ver = "v1.0";
 
-        String timingIdentifier = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "qaN");
+        String timingIdentifier = (String) XposedHelpers.getObjectField(preLuckMoneyRsp, "xcw");
 
-        Class clzAN = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.an", lpparam.classLoader);
-        Object objAn = XposedHelpers.newInstance(clzAN, msgType, channelId, sendId, nativeUrl, headImg, nickName, talker, ver, timingIdentifier);
-        return objAn;
+        Class clz;
+        Object obj;
+        if (luckyMoneyMsg.isUnionSceneId()) {
+            clz = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.aw", lpparam.classLoader);
+            obj = XposedHelpers.newInstance(clz, msgType, channelId, sendId, nativeUrl, headImg, nickName, userName, ver, timingIdentifier);
+        } else {
+            clz = XposedHelpers.findClass("com.tencent.mm.plugin.luckymoney.model.av", lpparam.classLoader);
+            obj = XposedHelpers.newInstance(clz, msgType, channelId, sendId, nativeUrl, headImg, nickName, userName, ver, timingIdentifier, "");
+        }
+        return obj;
     }
 }
